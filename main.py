@@ -94,7 +94,7 @@ def master_loop(q_controls,q_gains,q_ref,q_data):
                         np.save(time.strftime("recordings/%Y-%m-%d-%H%M.npy",time.localtime()), measurements)
                         measurements = np.zeros([0,18])
                 elif c == GuiControls.QUIT:
-                    uav_controller.is_controlling = False
+                    uav_controller.controlling = False
                     is_watching = False
                     time.sleep(1)
             except:
