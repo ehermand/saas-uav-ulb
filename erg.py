@@ -75,6 +75,25 @@ class SphereConstraint(WallConstraint):
         return max((self.zeta-(self.dist-self.R))/(self.zeta - self.delta),0) * (self.cW + np.matrix(rho_tilde).T)
 
 
+class CylinderConstraint():
+    
+    def __init__(self,p0,R,delta,zeta,k):
+        self.delta = delta
+        self.zeta = zeta
+        self.p0 = p0
+        self.R = R
+        self.k = k
+    
+    def rho0(self,x):
+        dist = self.p0 - x[:2]
+        #k_rep*max((zeta-np.linalg.norm(x[0:2])**2+epsilon**2)/(zeta-delta),0)*np.concatenate((x[0:2],[[0]]),axis=0)/epsilon
+        return self.k*max((self.zeta-(dist-self.R))/(self.zeta - self.delta),0)*np.concatenate((x[0:2],[[0]]),axis=0)/self.R
+    
+    def Lyapunov_threshold(self,P,v):
+        v[2] = 0
+        xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
+        return xv.T@P@xv
+
 class ERG():
     
     def __init__(self,state_space,P,constraints,k,eta):
@@ -95,7 +114,9 @@ class ERG():
         self.constraints = constraints
         
     def Lyapunov(self,x,v):
-        X = x + self.sys.A.I@self.sys.B@v
+        #X = x + self.sys.A.I@self.sys.B@v
+        xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
+        X = x-xv
         V = X.T@self.P@X
         return V
     
@@ -113,7 +134,15 @@ class ERG():
         outputs:
             v - updated auxiliary reference
         """
-        vdot = self.compute_Delta(x,v)*self.compute_attraction_field(r,v)
+        
+        #vdot = self.compute_Delta(x,v)*self.compute_attraction_field(r,v)
+        
+        V = self.Lyapunov(x,v)
+        Gamma = self.compute_Gamma(x,v)
+        Delta = self.k*(Gamma-V)[0,0]
+        rho = self.compute_attraction_field(r,v)
+        vdot = Delta*rho
+        
         return v + vdot*dt
     
     def compute_attraction_field(self,r,v):
@@ -133,3 +162,13 @@ class ERG():
             else:
                 Delta = min(self.k*(Gamma-V)[0,0],Delta)
         return Delta
+    
+    def compute_Gamma(self,x,v):
+        Gamma = None
+        for c in self.constraints:
+            G = c.Lyapunov_threshold(self.P,v)
+            if Gamma == None:
+                Gamma = G
+            else:
+                Gamma = min(G,Gamma)
+        return Gamma
