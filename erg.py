@@ -21,11 +21,17 @@ class LinearConstraint():
         
     def Lyapunov_threshold(self,P,v):
         xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
-        return ((self.a.T*xv + self.b)**2)/(self.a.T*P.I*self.a)
+        return ((self.a.T@xv + self.b)**2)/(self.a.T@P.I@self.a)
         
 class WallConstraint(LinearConstraint):
     
     def __init__(self,cW,dW,delta,zeta):
+        """
+        parameters:
+            cW, dW - wall constraint parameters (c vector, d scalar)
+            delta - static safety margin (>0)
+            zeta - influence region of the wall constraint (>delta)
+        """
         norm = np.linalg.norm(cW)
         
         self.cW = cW/norm
@@ -70,7 +76,16 @@ class SphereConstraint(WallConstraint):
 
 
 class ERG():
+    
     def __init__(self,state_space,P,constraints,k,eta):
+        """
+        parameters:
+            state_space - state space matrices of closed loop system
+            P - matrix of the quadratic Lyapunov
+            constraints - list of constraints
+            k - gain
+            eta - smoothing radius
+        """
         self.k = k
         self.eta = eta
         
@@ -91,17 +106,12 @@ class ERG():
     def compute_reference(self,x,r,v,dt):
         """
         inputs:
+            x - current state
             r - true reference
-            v - modified reference
-            V - Lyapunov function
-            Gamma - threshold value of Lyapunov function
-            k - gain
-            eta - smoothing radius
-            zeta - influence region of the wall constraint (>delta)
-            delta - static safety margin (>0)
-            c, d - wall constraint parameters (c unit vector, d scalar)
+            v - current auxiliary reference
+            dt - time step
         outputs:
-            vdot - derivative of modified reference
+            v - updated auxiliary reference
         """
         vdot = self.compute_Delta(x,v)*self.compute_attraction_field(r,v)
         return v + vdot*dt
