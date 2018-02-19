@@ -52,7 +52,7 @@ class WallConstraint(LinearConstraint):
         super().__init__(a,b)
         
     def rho0(self,v):
-        return self.cW*max((self.zeta-(self.cW.T@v + self.dW)) / (self.zeta-self.delta),0)
+        return max((self.zeta-(self.cW.T@v + self.dW)) / (self.zeta-self.delta),0)*self.cW
 
 
 class SphereConstraint(WallConstraint):
@@ -125,10 +125,6 @@ class ERG():
         X = x-xv
         V = X.T@self.P@X
         return V
-    
-    def Lyapunov_threshold(self,v):
-        xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
-        return ((self.a.T@xv + self.b)**2)/(self.a.T@self.P.I@self.a)
     
     def compute_reference(self,x,r,v,dt):
         """
