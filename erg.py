@@ -81,7 +81,7 @@ class SphereConstraint(WallConstraint):
         return -max((self.zeta-(self.dist-self.R))/(self.zeta-self.delta),0) * (self.cW+np.matrix(rho_tilde).T)
 
     def Lyapunov_threshold(self,P,v):
-        return 1000
+        return 1000 # to disable it
 
 class CylinderConstraint():
     
@@ -95,19 +95,14 @@ class CylinderConstraint():
     def rho0(self,v):
         diff = self.p0 - v[:2]
         dist = np.linalg.norm(diff)
-        #k_rep*max((zeta-np.linalg.norm(x[0:2])**2+epsilon**2)/(zeta-delta),0)*np.concatenate((x[0:2],[[0]]),axis=0)/epsilon
-        #return -self.k*max((self.zeta-(dist**2-self.R**2))/(self.zeta-self.delta),0)*np.concatenate((self.p0 - v[:2],[[0]]),axis=0)/self.R
         return -self.k*max((self.zeta-(dist-self.R))/(self.zeta-self.delta),0)*np.concatenate((diff,[[0]]),axis=0)/dist
     
     def Lyapunov_threshold(self,P,v):
-        #v[2] = 0
         xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
         diff = (self.p0 - v[:2])
         dist = np.linalg.norm(diff)
         b = self.p0 + (diff*self.R) / dist
         xb = np.concatenate((b,[v[2],[0],[0],[0]]),axis=0)
-        #return 1000
-        #print((xb-xv).T@P@(xb-xv))
         return (xb-xv).T@P@(xb-xv)
 
 class ERG():
