@@ -11,6 +11,13 @@ import numpy as np
 
 StateSpace = namedtuple("StateSpace", "A B C D")
 
+def copysign_plus(x1,x2):
+    res = np.copysign(x1,x2)
+    for i in range(res.shape[0]):
+        if res[i] == 0 and x1[i] != 0:
+           res[i] = abs(x1[i])
+    return res
+
 class LinearConstraint():
     """
     Linear constraint of the form: a.T*x + b >= 0
@@ -70,9 +77,8 @@ class SphereConstraint(WallConstraint):
         self.update(v)
         rho0W = super().rho0(v)
         perp = np.cross(np.ravel(self.cW),np.ravel(np.array([[0,0,1]])))
-        #TODO: rho_tilde if 0 sign should be + not 0
-        rho_tilde = np.copysign(perp,np.dot(np.ravel(rho0W),perp))
-        return max((self.zeta-(self.dist-self.R))/(self.zeta - self.delta),0) * (self.cW + np.matrix(rho_tilde).T)
+        rho_tilde = copysign_plus(perp,np.dot(np.ravel(rho0W),perp))
+        return -max((self.zeta-(self.dist-self.R))/(self.zeta-self.delta),0) * (self.cW+np.matrix(rho_tilde).T)
 
 
 class CylinderConstraint():
