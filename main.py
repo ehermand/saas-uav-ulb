@@ -57,7 +57,7 @@ def master_loop(q_controls,q_gains,q_ref,q_data):
     c3 = erg.WallConstraint(np.array([[1,-1,0]]).T,1,delta,zeta)
     c4 = erg.WallConstraint(np.array([[-1,1,0]]).T,1,delta,zeta)
     c5 = erg.SphereConstraint(np.array([[0.5,0.5,-1.2]]).T,0.1,delta,zeta)
-    c6 = erg.CylinderConstraint(np.array([[0.5,0.5]]).T,0.1,0.4,0.5,1)
+    c6 = erg.CylinderConstraint(np.array([[0.5,0.5]]).T,0.1,0.4,0.5)
 	
     uav_erg = erg.ERG(ss,P,[c1,c6],2,0.01)
     

@@ -22,9 +22,11 @@ class LinearConstraint():
     """
     Linear constraint of the form: a.T*x + b >= 0
     """
-    def __init__(self,a,b):
+    def __init__(self,a,b,P=None,k=None):
         self.a = a
         self.b = b
+        self.P = P
+        self.k = k
         
     def Lyapunov_threshold(self,P,v):
         xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
@@ -85,17 +87,18 @@ class SphereConstraint(WallConstraint):
 
 class CylinderConstraint():
     
-    def __init__(self,p0,R,delta,zeta,k):
+    def __init__(self,p0,R,delta,zeta,P=None,k=None):
         self.delta = delta
         self.zeta = zeta
         self.p0 = p0
         self.R = R
+        self.P = P
         self.k = k
     
     def rho0(self,v):
         diff = self.p0 - v[:2]
         dist = np.linalg.norm(diff)
-        return -self.k*max((self.zeta-(dist-self.R))/(self.zeta-self.delta),0)*np.concatenate((diff,[[0]]),axis=0)/dist
+        return -max((self.zeta-(dist-self.R))/(self.zeta-self.delta),0)*np.concatenate((diff,[[0]]),axis=0)/dist
     
     def Lyapunov_threshold(self,P,v):
         xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
@@ -124,11 +127,11 @@ class ERG():
     
         self.constraints = constraints
         
-    def Lyapunov(self,x,v):
+    def Lyapunov(self,x,v,P):
         #X = x + self.sys.A.I@self.sys.B@v
         xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
         X = x-xv
-        V = X.T@self.P@X
+        V = X.T@P@X
         return V
     
     def compute_reference(self,x,r,v,dt):
@@ -142,13 +145,13 @@ class ERG():
             v - updated auxiliary reference
         """
         
-        #vdot = self.compute_Delta(x,v)*self.compute_attraction_field(r,v)
+        vdot = self.compute_Delta(x,v)*self.compute_attraction_field(r,v)
         
-        V = self.Lyapunov(x,v)
-        Gamma = self.compute_Gamma(x,v)
-        Delta = self.k*(Gamma-V)[0,0]
-        rho = self.compute_attraction_field(r,v)
-        vdot = Delta*rho
+        #V = self.Lyapunov(x,v,self.P)
+        #Gamma = self.compute_Gamma(x,v)
+        #Delta = self.k*(Gamma-V)[0,0]
+        #rho = self.compute_attraction_field(r,v)
+        #vdot = Delta*rho
         
         return v + vdot*dt
     
@@ -160,22 +163,31 @@ class ERG():
         return rho
     
     def compute_Delta(self,x,v):
-        V = self.Lyapunov(x,v)
         Delta = None
         for c in self.constraints:
-            Gamma = c.Lyapunov_threshold(self.P,v)
-            if Delta == None:
-                Delta = self.k*(Gamma-V)[0,0]
-            else:
-                Delta = min(self.k*(Gamma-V)[0,0],Delta)
+            if c.P:
+                P = c.P
+            else: # no constraint specific P
+                P = self.P
+            if c.k:
+                k = c.k
+            else: # no constraint specific k
+                k = self.k
+
+            V = self.Lyapunov(x,v,P)
+            Gamma = c.Lyapunov_threshold(P,v)
+            if Delta:
+                Delta = min(k*(Gamma-V)[0,0],Delta)
+            else: # first iteration
+                Delta = k*(Gamma-V)[0,0]
         return Delta
     
     def compute_Gamma(self,x,v):
         Gamma = None
         for c in self.constraints:
             G = c.Lyapunov_threshold(self.P,v)
-            if Gamma == None:
-                Gamma = G
-            else:
+            if Gamma:
                 Gamma = min(G,Gamma)
+            else: # first iteration
+                Gamma = G
         return Gamma
