@@ -102,7 +102,13 @@ class CylinderConstraint():
     def Lyapunov_threshold(self,P,v):
         #v[2] = 0
         xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
-        return 1000
+        diff = (self.p0 - v[:2])
+        dist = np.linalg.norm(diff)
+        b = self.p0 + (diff*self.R) / dist
+        xb = np.concatenate((b,[v[2],[0],[0],[0]]),axis=0)
+        #return 1000
+        #print((xb-xv).T@P@(xb-xv))
+        return (xb-xv).T@P@(xb-xv)
 
 class ERG():
     
