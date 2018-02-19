@@ -44,21 +44,22 @@ def master_loop(q_controls,q_gains,q_ref,q_data):
     uav_controller.trim()
     
     # Initialize ERG
-    dic = spio.loadmat("./erg/ss_v1_mat.mat")
+    dic = spio.loadmat("./ss_decoupled_final_mat_only.mat")
     ss = (np.matrix(dic["A"]),np.matrix(dic["B"]),np.matrix(dic["C"]),np.matrix(dic["D"]))
-    P = np.matrix(np.load("./erg/ss_v1_P.npy"))
+    #P = np.matrix(np.load("./erg/ss_v1_P.npy"))
+    P = np.matrix(spio.loadmat("./ss_decoupled_final_P_optimal.mat")["P"])
     
     # Create constraints
-    delta = 0.2
+    delta = 0.4
     zeta = 0.5
     c1 = erg.WallConstraint(np.array([[1,1,0]]).T,1,delta,zeta)
     c2 = erg.WallConstraint(np.array([[-1,-1,0]]).T,1,delta,zeta)
     c3 = erg.WallConstraint(np.array([[1,-1,0]]).T,1,delta,zeta)
     c4 = erg.WallConstraint(np.array([[-1,1,0]]).T,1,delta,zeta)
-    #c5 = erg.SphereConstraint(np.array([[0.5,-0.5,-1.2]]).T,0.25,delta,zeta)
-    c6 = erg.CylinderConstraint(np.array([[0.5,-0.5]]).T,0.01,0.45,0.55,0.01)
+    c5 = erg.SphereConstraint(np.array([[0.5,0.5,-1.2]]).T,0.1,delta,zeta)
+    c6 = erg.CylinderConstraint(np.array([[0.5,0.5]]).T,0.1,0.4,0.5,1)
 	
-    uav_erg = erg.ERG(ss,P,[c1,c2,c3,c4],0.05,0.01)
+    uav_erg = erg.ERG(ss,P,[c1,c6],2,0.01)
     
     ref_mod = np.copy(ref)
     
@@ -135,7 +136,7 @@ def master_loop(q_controls,q_gains,q_ref,q_data):
         p_est, v_est = kalman.update(p_meas,dt)
         
         # ERG
-        x = np.concatenate((p_est,v_est),axis=0)
+        x = np.concatenate((p_meas,v_est),axis=0)
         ref_mod[0:3] = uav_erg.compute_reference(x,ref[0:3],ref_mod[0:3],dt)
         ref_mod[3] = ref[3] # forward psi ref
         

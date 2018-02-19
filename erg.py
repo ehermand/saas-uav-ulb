@@ -80,6 +80,8 @@ class SphereConstraint(WallConstraint):
         rho_tilde = copysign_plus(perp,np.dot(np.ravel(rho0W),perp))
         return -max((self.zeta-(self.dist-self.R))/(self.zeta-self.delta),0) * (self.cW+np.matrix(rho_tilde).T)
 
+    def Lyapunov_threshold(self,P,v):
+        return 1000
 
 class CylinderConstraint():
     
@@ -90,15 +92,17 @@ class CylinderConstraint():
         self.R = R
         self.k = k
     
-    def rho0(self,x):
-        dist = self.p0 - x[:2]
+    def rho0(self,v):
+        diff = self.p0 - v[:2]
+        dist = np.linalg.norm(diff)
         #k_rep*max((zeta-np.linalg.norm(x[0:2])**2+epsilon**2)/(zeta-delta),0)*np.concatenate((x[0:2],[[0]]),axis=0)/epsilon
-        return self.k*max((self.zeta-(dist-self.R))/(self.zeta - self.delta),0)*np.concatenate((x[0:2],[[0]]),axis=0)/self.R
+        #return -self.k*max((self.zeta-(dist**2-self.R**2))/(self.zeta-self.delta),0)*np.concatenate((self.p0 - v[:2],[[0]]),axis=0)/self.R
+        return -self.k*max((self.zeta-(dist-self.R))/(self.zeta-self.delta),0)*np.concatenate((diff,[[0]]),axis=0)/dist
     
     def Lyapunov_threshold(self,P,v):
-        v[2] = 0
+        #v[2] = 0
         xv = np.concatenate((v,[[0],[0],[0]]),axis=0)
-        return xv.T@P@xv
+        return 1000
 
 class ERG():
     
